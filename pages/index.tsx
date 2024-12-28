@@ -1,114 +1,97 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import { useState, useMemo } from 'react';
+import { GetStaticProps } from 'next';
+import SearchBar from '../components/SearchBar';
+import ReportCard from '../components/ReportCard';
+import { fetchReportsFromGitHub } from '../lib/github';
+import matter from 'gray-matter';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+interface Report {
+  title: string;
+  description: string;
+  date: string;
+  slug: string;
+  author: string;
+  tags: string[];
+}
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+interface HomeProps {
+  reports: Report[];
+}
 
-export default function Home() {
+export default function Home({ reports }: HomeProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredReports = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return reports.filter(report => 
+      report.title.toLowerCase().includes(query) ||
+      report.description.toLowerCase().includes(query) ||
+      report.author.toLowerCase().includes(query) ||
+      report.tags.some(tag => tag.toLowerCase().includes(query))
+    );
+  }, [searchQuery, reports]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
   return (
-    <div
-      className={`${geistSans.variable} ${geistMono.variable} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              pages/index.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="min-h-screen bg-gray-50">
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-0 mb-8 text-gray-400">
+          <SearchBar onSearch={handleSearch} />
+        </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        <div className="mt-8 grid gap-6 px-4 sm:px-0 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredReports.length > 0 ? (
+            filteredReports.map((report, index) => (
+              <ReportCard key={index} {...report} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500">
+                {searchQuery ? 'No reports found matching your search.' : 'No reports available.'}
+              </p>
+            </div>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
+
+export const getStaticProps: GetStaticProps = async () => {
+  try {
+    const githubReports = await fetchReportsFromGitHub();
+    
+    const reports = githubReports
+      .filter((file): file is NonNullable<typeof file> => file !== null)
+      .map(file => {
+        const { data: frontMatter } = matter(file.content);
+        return {
+          title: frontMatter.title || 'Untitled',
+          description: frontMatter.description || '',
+          date: frontMatter.date || new Date().toISOString(),
+          author: frontMatter.author || 'Anonymous',
+          tags: Array.isArray(frontMatter.tags) ? frontMatter.tags : [],
+          slug: file.name.replace('.md', '')
+        };
+      });
+
+    return {
+      props: {
+        reports
+      },
+      // Revalidate every hour
+      revalidate: 3600
+    };
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    return {
+      props: {
+        reports: []
+      },
+      revalidate: 3600
+    };
+  }
+};
